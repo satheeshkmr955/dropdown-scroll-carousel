@@ -19,20 +19,25 @@ class App extends Component {
     selectedFilter: "",
     toolTipCss: {},
     prevScroll: 0,
-    openModal: false
+    openModal: false,
+    showTooltip: false
   };
   componentDidMount() {
     window.addEventListener(
       "scroll",
       () => {
         let { toolTipCss, prevScroll } = this.state;
-        let { scrollLeft } = document.querySelector("#filter");
+        let { scrollLeft, offsetLeft, offsetWidth } = document.querySelector(
+          "#filter"
+        );
         let left = toolTipCss.orgLeft
           ? toolTipCss.orgLeft + prevScroll - scrollLeft
           : 0;
         this.setState({
           toolTipCss: { ...toolTipCss, left: `${left}px`, orgLeft: left },
-          prevScroll: scrollLeft
+          prevScroll: scrollLeft,
+          showTooltip:
+            offsetLeft < left - 8 && left < offsetWidth + offsetLeft / 2
         });
       },
       true
@@ -41,22 +46,28 @@ class App extends Component {
 
   filterClickHandler = (e, name) => {
     let { openModal, selectedFilter } = this.state;
-    const pos = ReactDOM.findDOMNode(e.target).getBoundingClientRect();
-    const left = pos.left;
-    const toolTipCss = {
-      display: "block",
-      left: `${left}px`,
-      orgLeft: left
-    };
     let updateModal = !openModal;
     if (selectedFilter !== name) {
       updateModal = true;
     }
-    this.setState({ toolTipCss, selectedFilter: name, openModal: updateModal });
+    const pos = ReactDOM.findDOMNode(e.target).getBoundingClientRect();
+    this.setState({ openModal: updateModal }, () => {
+      const category = document
+        .querySelector("#category")
+        .getBoundingClientRect();
+      const left = pos.left - 12 + pos.width / 2;
+      const toolTipCss = {
+        display: "block",
+        left: `${left}px`,
+        orgLeft: left,
+        top: category.top - 12
+      };
+      this.setState({ toolTipCss, selectedFilter: name, showTooltip: true });
+    });
   };
 
   render() {
-    const { selectedFilter, toolTipCss, openModal } = this.state;
+    const { selectedFilter, toolTipCss, openModal, showTooltip } = this.state;
     const filterList = filterData.map((filter, i) => {
       return (
         <div
@@ -76,10 +87,14 @@ class App extends Component {
           {filterList}
         </div>
         <div
+          className={styles.tooltip}
+          style={{ ...toolTipCss, display: showTooltip ? "block" : "none" }}
+        ></div>
+        <div
           className={styles.filterCategory}
+          id="category"
           style={{ display: openModal ? "flex" : "none" }}
         >
-          <div className={styles.tooltip} style={{ ...toolTipCss }}></div>
           {selectedFilter}
         </div>
       </div>
